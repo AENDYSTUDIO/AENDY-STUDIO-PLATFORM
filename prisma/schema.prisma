@@ -1,0 +1,170 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  avatar    String?
+  bio       String?
+  isPremium Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  tracks    Track[]
+  playlists Playlist[]
+  likes     Like[]
+  comments  Comment[]
+  rewards   Reward[]
+  tokens    Token[]
+  sentMessages  Message[] @relation("sender_messages")
+  receivedMessages Message[] @relation("receiver_messages")
+}
+
+model Track {
+  id          String   @id @default(cuid())
+  title       String
+  artist      String
+  album       String?
+  genre       String?
+  duration    Int      // in seconds
+  plays       Int      @default(0)
+  url         String
+  coverImage  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  likes       Like[]
+  comments    Comment[]
+  playlists   PlaylistTrack[]
+}
+
+model Playlist {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  tracks      PlaylistTrack[]
+  likes       Like[]
+  comments    Comment[]
+}
+
+model PlaylistTrack {
+  id         String   @id @default(cuid())
+  position   Int
+  createdAt  DateTime @default(now())
+
+  // Relations
+  playlistId String
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  trackId    String
+  track      Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@unique([playlistId, trackId])
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  type      LikeType
+  createdAt DateTime @default(now())
+
+  // Relations
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  trackId   String?
+  track     Track?   @relation(fields: [trackId], references: [id])
+  playlistId String?
+  playlist  Playlist? @relation(fields: [playlistId], references: [id])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  // Relations
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  trackId   String?
+  track     Track?   @relation(fields: [trackId], references: [id])
+  playlistId String?
+  playlist  Playlist? @relation(fields: [playlistId], references: [id])
+}
+
+model Reward {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  type        RewardType
+  value       Int      @default(0)
+  isClaimed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  // Relations
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model Token {
+  id        String   @id @default(cuid())
+  type      TokenType
+  amount    Int      @default(0)
+  createdAt DateTime @default(now())
+
+  // Relations
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Relations
+  senderId   String
+  sender     User     @relation("sender_messages", fields: [senderId], references: [id])
+  receiverId String
+  receiver   User     @relation("receiver_messages", fields: [receiverId], references: [id])
+}
+
+enum LikeType {
+  TRACK
+  PLAYLIST
+}
+
+enum RewardType {
+  STREAM
+  UPLOAD
+  PLAYLIST
+  COMMENT
+  LIKE
+  PREMIUM
+}
+
+enum TokenType {
+  SAUDIO
+}
